@@ -1,0 +1,49 @@
+name: GDrive to Telegram Sync
+
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        course_name:
+          - '12 Factor App'
+          - 'AI Agents'
+          # Paste the rest of the folder names from your downloaded_courses.txt here
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        # cryptg drastically speeds up file encryption for Telethon uploads
+        run: pip install telethon cryptg 
+
+      - name: Setup Rclone
+        run: sudo curl https://rclone.org/install.sh | sudo bash
+
+      - name: Configure Rclone
+        run: |
+          mkdir -p ~/.config/rclone
+          cat << 'EOF' > ~/.config/rclone/rclone.conf
+          ${{ secrets.RCLONE_CONFIG }}
+          EOF
+
+      - name: Download Course to Runner
+        run: rclone copy "CloudDriveRemote:KodeKloud/KodeKloud/${{ matrix.course_name }}" "./payload" --progress
+
+      - name: Upload to Telegram
+        env:
+          TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python telegram_upload.py "./payload" "${{ matrix.course_name }}"
