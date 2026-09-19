@@ -195,7 +195,7 @@ jobs:
           python-version: "3.10"
 
       - name: Install Dependencies
-        run: pip install telethon cryptg
+        run: pip install --upgrade telethon cryptg
 
       - name: Install Rclone
         run: sudo curl https://rclone.org/install.sh | sudo bash
